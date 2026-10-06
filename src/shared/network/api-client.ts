@@ -1,4 +1,5 @@
 import env from '@/shared/config/env';
+import { getAccessToken, setAccessToken, clearAccessToken, isTokenExpired } from './token-store';
 
 export type ApiErrorCode =
   | 'VALIDATION_ERROR'
@@ -85,6 +86,41 @@ function mapStatusToCode(status: number): ApiErrorCode {
   }
 }
 
+let refreshPromise: Promise<ApiResponse<unknown>> | null = null;
+
+async function refreshAccessToken(): Promise<ApiResponse<unknown>> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${env.API_BASE_URL}/api/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await handleResponse<{ accessToken: string; expiresAt: string }>(response);
+      if (result.success && result.data?.accessToken && result.data?.expiresAt) {
+        setAccessToken(result.data.accessToken, result.data.expiresAt);
+      } else {
+        clearAccessToken();
+      }
+      return result;
+    } catch {
+      clearAccessToken();
+      return { success: false, error: { code: 'NETWORK_ERROR', message: 'Token refresh failed', status: 0 } };
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
 export interface RequestOptions extends RequestInit {
   params?: Record<string, string | number | boolean | undefined | null>;
   requireAuth?: boolean;
@@ -111,6 +147,11 @@ export async function apiRequest<T>(
   };
 
   if (requireAuth) {
+    const token = getAccessToken();
+    if (token) {
+      (requestHeaders as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+    }
+
     const csrfToken = getCsrfToken();
     if (csrfToken) {
       (requestHeaders as Record<string, string>)['X-XSRF-TOKEN'] = csrfToken;
@@ -127,6 +168,25 @@ export async function apiRequest<T>(
       credentials: 'include',
       signal: controller.signal,
     });
+
+    if (response.status === 401 && requireAuth && !isTokenExpired()) {
+      const refreshResult = await refreshAccessToken();
+      if (refreshResult.success) {
+        const newToken = getAccessToken();
+        if (newToken) {
+          (requestHeaders as Record<string, string>)['Authorization'] = `Bearer ${newToken}`;
+        }
+
+        const retryResponse = await fetch(url.toString(), {
+          ...fetchOptions,
+          headers: requestHeaders,
+          credentials: 'include',
+          signal: controller.signal,
+        });
+
+        return handleResponse<T>(retryResponse);
+      }
+    }
 
     return handleResponse<T>(response);
   } catch (error) {

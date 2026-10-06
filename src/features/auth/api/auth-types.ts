@@ -17,6 +17,8 @@ export const loginResponseSchema = z.object({
   permissions: z.array(z.string()),
   isActive: z.boolean(),
   mustChangePassword: z.boolean(),
+  accessToken: z.string(),
+  expiresAt: z.string().datetime(),
 });
 
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
@@ -29,6 +31,7 @@ export const authResultSchema = z.object({
   refreshTokenExpiry: z.string().optional(),
   xsrfToken: z.string().optional(),
   accessTokenExpiry: z.string().optional(),
+  accessToken: z.string().optional(),
 });
 
 export type AuthResult = z.infer<typeof authResultSchema>;

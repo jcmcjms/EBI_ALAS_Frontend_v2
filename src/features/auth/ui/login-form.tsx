@@ -1,22 +1,37 @@
+import { useState } from "react"
 import { cn } from "cn"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/shared/ui/button"
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldSeparator,
 } from "@/shared/ui/field"
 import { Input } from "@/shared/ui/input"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/shared/ui/input-group"
+import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react"
 import { loginRequestSchema, type LoginRequest } from "../api/auth-types"
-import { useLogin } from "../api/auth-mutations"
-import { useAuth } from "@/app/providers"
+import { login } from "../api/auth-queries"
+import { authKeys } from "../api/auth-queries"
 
 export function LoginForm() {
-  const { refetch } = useAuth()
-  const loginMutation = useLogin()
+  const queryClient = useQueryClient();
+  const [showPassword, setShowPassword] = useState(false)
+
+  const loginMutation = useMutation({
+    mutationFn: login,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: authKeys.me() });
+    },
+  })
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginRequest>({
     resolver: zodResolver(loginRequestSchema),
@@ -26,9 +41,7 @@ export function LoginForm() {
   const onSubmit = async (data: LoginRequest) => {
     try {
       await loginMutation.mutateAsync(data)
-      await refetch()
     } catch (err) {
-      // Error handling could be added here (e.g., toast notification)
       console.error('Login failed:', err)
     }
   }
@@ -46,10 +59,12 @@ export function LoginForm() {
           <FieldLabel htmlFor="username">Username</FieldLabel>
           <Input
             id="username"
+            type="text"
             placeholder="Enter your username"
             {...register('username')}
             disabled={loginMutation.isPending}
             aria-invalid={!!errors.username}
+            className="bg-background"
           />
           {errors.username && (
             <FieldDescription className="text-destructive" role="alert">
@@ -58,17 +73,38 @@ export function LoginForm() {
           )}
         </Field>
         <Field>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center">
             <FieldLabel htmlFor="password">Password</FieldLabel>
+            <a
+              href="#"
+              className="ml-auto text-sm underline-offset-4 hover:underline"
+            >
+              Forgot your password?
+            </a>
           </div>
-          <Input
-            id="password"
-            type="password"
-            placeholder="Enter your password"
-            {...register('password')}
-            disabled={loginMutation.isPending}
-            aria-invalid={!!errors.password}
-          />
+          <InputGroup>
+            <InputGroupInput
+              id="password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter your password"
+              {...register('password')}
+              disabled={loginMutation.isPending}
+              aria-invalid={!!errors.password}
+              className="bg-background"
+            />
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                disabled={loginMutation.isPending}
+              >
+                {showPassword ? <EyeSlashIcon className="size-4" /> : <EyeIcon className="size-4" />}
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
           {errors.password && (
             <FieldDescription className="text-destructive" role="alert">
               {errors.password.message}
@@ -79,29 +115,6 @@ export function LoginForm() {
           <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
             {loginMutation.isPending ? 'Signing in...' : 'Sign in'}
           </Button>
-        </Field>
-        <FieldSeparator>Or continue with</FieldSeparator>
-        <Field>
-          <Button variant="outline" type="button" className="w-full">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              className="mr-2 size-4"
-              aria-hidden="true"
-            >
-              <path
-                d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
-              />
-            </svg>
-            Login with GitHub
-          </Button>
-          <FieldDescription className="text-center">
-            Don&apos;t have an account?{" "}
-            <a href="#" className="underline underline-offset-4">
-              Sign up
-            </a>
-          </FieldDescription>
         </Field>
       </FieldGroup>
     </form>

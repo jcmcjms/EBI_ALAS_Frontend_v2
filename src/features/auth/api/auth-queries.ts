@@ -1,4 +1,5 @@
 import { api } from '@/shared/network/api-client';
+import { setAccessToken } from '@/shared/network/token-store';
 import type { LoginRequest, LoginResponse, ChangePasswordRequest, MeResponse } from './auth-types';
 
 export const authKeys = {
@@ -22,14 +23,20 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
   if (!response.success || !response.data) {
     throw new Error(response.error?.message ?? 'Login failed');
   }
+  if (response.data.accessToken && response.data.expiresAt) {
+    setAccessToken(response.data.accessToken, response.data.expiresAt);
+  }
   return response.data;
 }
+
+import { clearAccessToken } from '@/shared/network/token-store';
 
 export async function logout(): Promise<void> {
   const response = await api.post<void>('/api/auth/logout', undefined, { requireAuth: true });
   if (!response.success) {
     throw new Error(response.error?.message ?? 'Logout failed');
   }
+  clearAccessToken();
 }
 
 export async function changePassword(request: ChangePasswordRequest): Promise<void> {
