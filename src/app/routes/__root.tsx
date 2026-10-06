@@ -6,15 +6,7 @@ import {
 } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { Toaster } from '@/shared/ui/sonner';
-import type { MeResponse } from '@/features/auth/api/auth-types';
-
-export interface RouterContext {
-  auth: {
-    user: MeResponse | null;
-    isLoading: boolean;
-    isAuthenticated: boolean;
-  };
-}
+import type { RouterContext } from '@/app/router-context';
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   head: () => ({

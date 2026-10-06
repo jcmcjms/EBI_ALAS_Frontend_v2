@@ -1,15 +1,8 @@
-import type { MeResponse } from '@/features/auth/api/auth-types';
+import type { MeResponse } from '@/features/auth/api/auth-types'
 
 export interface RouterContext {
-  auth: {
-    user: MeResponse | null;
-    isLoading: boolean;
-    isAuthenticated: boolean;
-  };
-}
-
-declare module '@tanstack/react-router' {
-  interface Register {
-    context: RouterContext;
-  }
+	auth: {
+		/** Awaits the in-flight session restore on first call; cached afterwards. */
+		getSession: () => Promise<MeResponse | null>
+	}
 }

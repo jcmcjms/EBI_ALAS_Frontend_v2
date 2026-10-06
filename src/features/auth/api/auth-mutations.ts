@@ -13,16 +13,19 @@ export function useLogin() {
   });
 }
 
-export function useLogout() {
-  const queryClient = useQueryClient();
+import { invalidateSession } from '@/features/auth/api/session';
 
-  return useMutation({
-    mutationFn: logout,
-    onSuccess: () => {
-      queryClient.setQueryData(authKeys.me(), null);
-      queryClient.clear();
-    },
-  });
+export function useLogout() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: logout,
+		onSuccess: () => {
+			invalidateSession();
+			queryClient.setQueryData(authKeys.me(), null);
+			queryClient.clear();
+		},
+	});
 }
 
 export function useChangePassword() {
