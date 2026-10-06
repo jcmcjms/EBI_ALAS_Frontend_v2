@@ -1,5 +1,5 @@
 import { api } from '@/shared/network/api-client';
-import { setAccessToken } from '@/shared/network/token-store';
+import { setAccessToken, clearAccessToken } from '@/shared/network/token-store';
 import type { LoginRequest, LoginResponse, ChangePasswordRequest, MeResponse } from './auth-types';
 
 export const authKeys = {
@@ -23,20 +23,19 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
   if (!response.success || !response.data) {
     throw new Error(response.error?.message ?? 'Login failed');
   }
-  if (response.data.accessToken && response.data.expiresAt) {
-    setAccessToken(response.data.accessToken, response.data.expiresAt);
-  }
+
+  // Store the access token from the unwrapped response data
+  setAccessToken(response.data.accessToken, response.data.expiresAt);
+
   return response.data;
 }
 
-import { clearAccessToken } from '@/shared/network/token-store';
-
 export async function logout(): Promise<void> {
   const response = await api.post<void>('/api/auth/logout', undefined, { requireAuth: true });
+  clearAccessToken(); // Always clear on logout
   if (!response.success) {
     throw new Error(response.error?.message ?? 'Logout failed');
   }
-  clearAccessToken();
 }
 
 export async function changePassword(request: ChangePasswordRequest): Promise<void> {
@@ -46,14 +45,18 @@ export async function changePassword(request: ChangePasswordRequest): Promise<vo
   if (!response.success) {
     throw new Error(response.error?.message ?? 'Password change failed');
   }
+  // Password changed = session invalidated, clear token
+  clearAccessToken();
 }
 
 export async function refreshToken(): Promise<LoginResponse> {
   const response = await api.post<LoginResponse>('/api/auth/refresh', undefined, {
-    requireAuth: true,
+    requireAuth: false, // Refresh uses cookie, not access token header
   });
   if (!response.success || !response.data) {
+    clearAccessToken();
     throw new Error(response.error?.message ?? 'Token refresh failed');
   }
+  setAccessToken(response.data.accessToken, response.data.expiresAt);
   return response.data;
 }

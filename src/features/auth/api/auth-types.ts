@@ -9,16 +9,8 @@ export const loginRequestSchema = z.object({
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
 export const loginResponseSchema = z.object({
-  id: z.number(),
-  username: z.string(),
-  email: z.string().email(),
-  fullName: z.string(),
-  roles: z.array(z.string()),
-  permissions: z.array(z.string()),
-  isActive: z.boolean(),
-  mustChangePassword: z.boolean(),
   accessToken: z.string(),
-  expiresAt: z.string().datetime(),
+  expiresAt: z.string(),
 });
 
 export type LoginResponse = z.infer<typeof loginResponseSchema>;
