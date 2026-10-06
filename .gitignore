@@ -25,3 +25,6 @@ dist-ssr
 AGENTS.md
 .mimocode/
 .ai/
+.agents/
+test-results/
+playwright-report/
