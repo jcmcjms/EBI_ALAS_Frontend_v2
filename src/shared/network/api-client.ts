@@ -33,6 +33,13 @@ function getCsrfToken(): string | null {
   return null;
 }
 
+interface BackendApiResponse<T> {
+  success: boolean;
+  message: string;
+  data?: T;
+  errors?: string[];
+}
+
 async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
   const contentType = response.headers.get('content-type');
   const isJson = contentType?.includes('application/json');
@@ -41,8 +48,30 @@ async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
     if (response.status === 204) {
       return { success: true };
     }
-    const data = isJson ? await response.json() : null;
-    return { success: true, data: data as T };
+    if (!isJson) {
+      return { success: true, data: null as unknown as T };
+    }
+
+    // Unwrap the backend's ApiResponse<T> envelope
+    const envelope: BackendApiResponse<T> = await response.json();
+
+    if (envelope.success) {
+      return {
+        success: true,
+        data: envelope.data,
+        message: envelope.message,
+      };
+    }
+
+    // Backend returned a 2xx but success: false
+    return {
+      success: false,
+      error: {
+        code: 'SERVER_ERROR',
+        message: envelope.message || 'Request failed',
+        status: response.status,
+      },
+    };
   }
 
   let error: ApiError;
@@ -50,7 +79,7 @@ async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
     const body = await response.json();
     error = {
       code: mapStatusToCode(response.status),
-      message: body?.detail ?? body?.message ?? response.statusText,
+      message: body?.detail ?? body?.message ?? body?.title ?? response.statusText,
       details: body?.errors,
       status: response.status,
     };
