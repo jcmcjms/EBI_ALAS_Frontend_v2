@@ -1,0 +1,48 @@
+{
+  "$schema": "https://dependency-cruiser.github.io/dependency-cruiser/schema/dependency-cruiser.schema.json",
+  "forbidden": [
+    {
+      "name": "feature-modules-must-not-import-other-features",
+      "comment": "Features must be isolated - no cross-feature imports",
+      "from": { "path": "^src/features" },
+      "to": { "path": "^src/features/[^/]+/[^/]+$" },
+      "severity": "error"
+    },
+    {
+      "name": "shared-must-not-import-features-or-app",
+      "comment": "Shared layer must not depend on features or app",
+      "from": { "path": "^src/shared" },
+      "to": { "path": "^src/(features|app)" },
+      "severity": "error"
+    },
+    {
+      "name": "features-must-not-import-app",
+      "comment": "Features must not import from app layer",
+      "from": { "path": "^src/features" },
+      "to": { "path": "^src/app" },
+      "severity": "error"
+    },
+    {
+      "name": "no-catch-all-folders",
+      "comment": "Do not create top-level catch-all folders",
+      "from": { "path": "^src" },
+      "to": {
+        "path": "^src/(components|hooks|services|utils|store|lib)$"
+      },
+      "severity": "error"
+    },
+    {
+      "name": "app-must-not-import-features-directly",
+      "comment": "App layer should compose via routing/providers, not direct feature imports",
+      "from": { "path": "^src/app" },
+      "to": { "path": "^src/features/[^/]+/ui" },
+      "severity": "warn"
+    }
+  ],
+  "options": {
+    "prefix": "@",
+    "tsConfig": {
+      "fileName": "tsconfig.app.json"
+    }
+  }
+}
