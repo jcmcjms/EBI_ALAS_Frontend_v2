@@ -123,13 +123,13 @@ export function AppSidebar() {
                           <span>{item.title}</span>
                         </Link>
                       ) : (
-                        <button type="button">
+                        <span>
                           <item.icon className="size-4" />
                           <span>{item.title}</span>
                           {item.external && (
                             <ArrowSquareOut className="ml-auto size-3.5 text-muted-foreground" />
                           )}
-                        </button>
+                        </span>
                       )}
                     </SidebarMenuButton>
                   </SidebarMenuItem>

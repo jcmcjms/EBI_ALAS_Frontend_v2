@@ -1,6 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { logout, changePassword, refreshToken } from './auth-queries';
+import { login, logout, changePassword, refreshToken } from './auth-queries';
 import { authKeys } from './auth-queries';
+
+export function useLogin() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: login,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: authKeys.me() });
+    },
+  });
+}
 
 export function useLogout() {
   const queryClient = useQueryClient();

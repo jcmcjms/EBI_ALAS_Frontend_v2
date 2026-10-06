@@ -2,7 +2,7 @@ import { useState } from "react"
 import { cn } from "cn"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 import { EyeIcon, EyeSlashIcon } from "@phosphor-icons/react"
 
@@ -22,18 +22,14 @@ import {
 } from "@/shared/ui/input-group"
 
 import { loginRequestSchema, type LoginRequest } from "../api/auth-types"
-import { authKeys, login } from "../api/auth-queries"
+import { useLogin } from "../api/auth-mutations"
+import { useAuth } from "@/app/providers"
 
 export function LoginForm() {
-  const queryClient = useQueryClient()
+  const { refetch } = useAuth()
+  const loginMutation = useLogin()
+  const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
-
-  const loginMutation = useMutation({
-    mutationFn: login,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: authKeys.me() })
-    },
-  })
 
   const {
     register,
@@ -47,7 +43,11 @@ export function LoginForm() {
   const onSubmit = async (data: LoginRequest) => {
     try {
       await loginMutation.mutateAsync(data)
+      await refetch()
+      // Navigate to dashboard after successful login
+      navigate({ to: "/dashboard" })
     } catch {
+      // Generic message: never confirm which credential was wrong (user enumeration).
       toast.error("Sign in failed", {
         description: "Invalid username or password. Please try again.",
       })
@@ -113,7 +113,7 @@ export function LoginForm() {
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => setShowPassword((visible) => !visible)}
+                onClick={() => setShowPassword((v) => !v)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
                 aria-pressed={showPassword}
                 disabled={loginMutation.isPending}
